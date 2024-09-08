@@ -1,0 +1,368 @@
+1)
+#import pandas as pd
+import numpy as np
+data = pd.read_csv('lab1.csv')
+data
+features = np.array(data)[:,:-1]
+features
+target = np.array(data)[:,-1]
+target
+for i ,val in enumerate(target):
+    if val == 'yes':
+       specific_h = features[i].copy()
+       break
+print(specific_h)
+for i,val in enumerate(features):
+    if target[i] == 'yes':
+       for x in range(len(specific_h)):
+           if val[x] != specific_h[x]:
+              specific_h[x] = '?'
+print(specific_h)
+
+
+2)
+import numpy as np
+import pandas as pd
+data = pd.read_csv('lab1.csv')
+data
+features=np.array(data)[:,:-1]
+features
+target=np.array(data)[:,-1]
+target
+specific_h=features[0].copy()
+print("initialization of specific_h an general_h")
+print(specific_h)
+general_h=[["?" for i in range(len(specific_h))]for i in range(len(specific_h))]
+print(general_h)
+for i,h in enumerate(features):
+    if target[i] =="yes":
+       for x in range(len(specific_h)):
+           if h[x]!=specific_h[x]:
+	      specific_h[x]='?'
+	      general_h[x][x]='?'
+    if target[i]=="no":
+       for x in range(len(specific_h)):
+           if h[x]!=specific_h[x]:
+              general_h[x][x]=specific_h[x]
+           else:
+		general_h[x][x]='?'
+	   print(specific_h,"\n")
+	   print(general_h,"\n")
+indices=[i for i,val in enumerate(general_h) if val==['?','?','?','?','?','?']]
+for i in indices:
+    general_h.remove(['?','?','?','?','?','?'])
+print("\nfinal specific_h:",specific_h,sep="\n")
+print("final general_h:",general_h,sep="\n")
+
+
+3)
+import pandas as pd
+from collections import Counter
+import math 
+tennis= pd.read_csv('tennis.csv')
+print("\n given play tennis dataset:\n \n",tennis)
+def entropy(alist):
+    c = Counter(x for x in alist)
+    instances = len(alist)
+    prob = [x / instances for x in c.values()]
+    return sum( [-p*math.log(p,2) for p in prob] )  
+def information_gain(d,split,target):
+    splitting=d.groupby(split)
+    n=len(d.index)
+    agent = splitting.agg({target:[entropy,lambda x:len(x)/n ] })[target]
+    agent.columns = ['entropy','observations']
+    newentropy = sum(agent['entropy']*agent['observations'])
+    oldentropy=entropy(d[target])
+    return oldentropy - newentropy 
+def id3(sub,target,a):
+    count = Counter(x for x in sub[target])
+    if len(count)==1:
+       return next(iter(count))#next i/p dataset
+    else:
+	gain=[information_gain(sub,attr,target) for attr in a]
+	print("\n gain=",gain)
+	maximum = gain.index(max(gain))
+	best = a[maximum]
+	print("\nbest attribute=",best)
+	tree={best:{}}
+	remaining=[i for i in a if i != best] 35
+	for val,subset in sub.groupby(best):
+	    subtree = id3(subset,target,remaining)
+	    tree[best][val] = subtree
+	return tree 
+names = list(tennis.columns)
+print("\nlist of attributes:",names)
+names.remove("PlayTennis")
+print("\npredicting attributes:",names)
+tree=id3(tennis,'PlayTennis',names)
+print("\n\n the resultant decision tree is:\n")
+print(tree)
+
+
+4)
+import numpy as np
+X=np.array(([2,9],[1,5],[3,6]),dtype=float)
+y=np.array(([92],[86],[89]),dtype=float)
+X=X/np.amax(X,axis=0)
+y=y/100
+def sigmoid(x):
+    return 1/(1+np.exp(-x))
+def derivatives_sigmoid(x):
+    return x*(1-x)
+epoch=7000
+lr=0.1
+inputlayer_neurons=2
+hiddenlayer_neurons=3
+output_neurons=1
+wh=np.random.uniform(size=(inputlayer_neurons,hiddenlayer_neurons))
+bh=np.random.uniform(size=(1,hiddenlayer_neurons))
+wout=np.random.uniform(size=(hiddenlayer_neurons,output_neurons))
+bout=np.random.uniform(size=(1,output_neurons))
+for i in range(epoch):
+    hinp1=np.dot(X,wh)
+    hinp=hinp1+bh
+    hlayer_act=sigmoid(hinp)
+    outinp1=np.dot(hlayer_act,wout)
+    outinp=outinp1+bout
+    output=sigmoid(outinp)
+    E0=y-output
+    outgrad=derivatives_sigmoid(output)
+    d_output=E0*outgrad
+    EH=d_output.dot(wout.T)
+    hiddengrad=derivatives_sigmoid(hlayer_act)
+    d_hiddenlayer=EH*hiddengrad
+    wout+=hlayer_act.T.dot(d_output)*lr
+print("Input:\n"+str(X))
+print("Actual Output:\n"+str(y))
+print("Predicted Output:\n",output)
+
+
+5)
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
+from sklearn import metrics
+
+data=pd.read_csv('textdata12.csv',names=['message','label'])
+print('the dataset is',data)
+print('the dimensions of the dataset',data.shape)
+data['labelnum']=data.label.map({'pos':1,'neg':0})
+x=data.message
+y=data.labelnum
+print(x)
+print(y)
+vectorizer=TfidfVectorizer()
+data=vectorizer.fit_transform(x)
+print("\n the feature of dataset:\n")
+df=pd.DataFrame(data.toarray(),columns=vectorizer.get_feature_names_out())
+df.head()
+print("\n train test split")
+xtrain,xtest,ytrain,ytest=train_test_split(data,y,test_size=0.3,random_state=42)
+print("\n the total number of training data:",ytrain.shape)
+print("\n the total number of test data:",ytest.shape)
+clf=MultinomialNB().fit(xtrain,ytrain)
+predict=clf.predict(xtest)
+predicted=clf.predict(xtest)
+print("\n accuracy of the classifier is",metrics.accuracy_score(ytest,predicted))
+print("\n confusion matrix is\n",metrics.confusion_matrix(ytest,predicted))
+print("\n classification report is\n",metrics.classification_report(ytest,predicted))
+print("\n the value of precision is\n",metrics.precision_score(ytest,predicted))
+print("\n the value of recall	is\n",metrics.recall_score(ytest,predicted))
+
+
+6)
+import pandas as pd
+col=['Age','Gender','Familylist','Diet','LifeStyle','Cholesterol','heartDisease']
+data=pd.read_csv('lab6.csv',names=col)
+print(data)
+from sklearn.preprocessing import LabelEncoder
+encoder=LabelEncoder()
+for i in range(len(col)):
+    data.iloc[:,i]=encoder.fit_transform(data.iloc[:,i])
+X=data.iloc[:,0:6]
+y=data.iloc[:,-1]
+from sklearn.model_selection import train_test_split
+X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.2)
+from sklearn.naive_bayes import GaussianNB
+clf=GaussianNB()
+clf.fit(X_train,y_train)
+y_pred=clf.predict(X_test)
+from sklearn.metrics import confusion_matrix
+print('confusion matrix',confusion_matrix(y_test,y_pred))
+
+
+7)
+import numpy as np 
+import pandas as pd
+from matplotlib import pyplot as plt
+from sklearn.mixture import GaussianMixture 
+from sklearn.cluster import KMeans
+data = pd.read_csv('pr7.csv') 
+print("Input Data and Shape") 
+print(data.shape)
+data.head()
+f1 = data['V1'].values 
+f2 = data['V2'].values
+X = np.array(list(zip(f1, f2)))
+print("X ", X)
+print('Graph for whole dataset') 
+plt.scatter(f1, f2, c='black', s=15)
+plt.show()
+kmeans = KMeans(10, random_state=42) 
+labels = kmeans.fit(X).predict(X) 
+print("labels	",labels)
+centroids = kmeans.cluster_centers_ 
+print("centroids	",centroids)
+plt.scatter(X[:, 0], X[:, 1], c=labels, s=40, cmap='viridis'); 
+print('Graph using Kmeans Algorithm')
+plt.scatter(centroids[:, 0], centroids[:, 1], marker='*', s=200, c='#050505')
+plt.show()
+gmm = GaussianMixture(n_components=3).fit(X) 
+labels = gmm.predict(X)
+probs = gmm.predict_proba(X) 
+size = 10 * probs.max(1) ** 3
+print('Graph using EM Algorithm')
+plt.scatter(X[:, 0], X[:, 1], c=labels, s=size, cmap='viridis');
+plt.show()
+
+
+8)
+import csv
+import random
+import math
+import operator
+def loadDataset(filename, split, trainingSet=[], testSet=[]):
+    with open(filename) as csvfile:
+        lines = csv.reader(csvfile)
+        dataset = list(lines)
+        for x in range(len(dataset)-1):
+            for y in range(4):
+                dataset[x][y] = float(dataset[x][y])
+            if random.random() < split:
+                trainingSet.append(dataset[x])
+            else:
+                testSet.append(dataset[x])
+def euclideanDistance(instance1, instance2, length):
+    distance = 0
+    for x in range(length):
+        distance += pow((instance1[x] - instance2[x]), 2)
+    return math.sqrt(distance)
+def getNeighbors(trainingSet, testInstance, k):
+    distances = []
+    length = len(testInstance)-1
+    for x in range(len(trainingSet)):
+        dist = euclideanDistance(testInstance, trainingSet[x], length)
+        distances.append((trainingSet[x], dist))
+    distances.sort(key=operator.itemgetter(1))
+    neighbors = []
+    for x in range(k):
+        neighbors.append(distances[x][0])
+    return neighbors
+def getResponse(neighbors):
+    classVotes = {}
+    for x in range(len(neighbors)):
+        response = neighbors[x][-1]
+        if response in classVotes:
+            classVotes[response] += 1
+        else:
+            classVotes[response] = 1
+    sortedVotes = sorted(classVotes.items(), key=operator.itemgetter(1), reverse=True)
+    return sortedVotes[0][0]
+def getAccuracy(testSet, predictions):
+    correct = 0
+    for x in range(len(testSet)):
+        if testSet[x][-1] == predictions[x]:
+            correct += 1
+    return (correct/float(len(testSet))) * 100.0
+def main():
+    trainingSet=[]
+    testSet=[] 
+    split = 0.67
+    loadDataset('iris_data.csv', split, trainingSet, testSet)
+    print ('\n Number of Training data: ' + (repr(len(trainingSet))))
+    print (' Number of Test Data: ' + (repr(len(testSet))))
+    predictions=[]
+    k = 3
+    print('\n The predictions are: ')
+    for x in range(len(testSet)):
+        neighbors = getNeighbors(trainingSet, testSet[x], k)
+        result = getResponse(neighbors)
+        predictions.append(result)
+        print(' predicted=' + repr(result) + ', actual=' + repr(testSet[x][-1]))
+    accuracy = getAccuracy(testSet, predictions)
+    print('\n The Accuracy is: ' + repr(accuracy) + '%')
+main()
+
+
+9)
+import numpy as np
+import matplotlib.pyplot as plt 
+import pandas as pd
+tou = 1
+data=pd.read_csv("pr9.csv") 
+X_train = np.array(data.total_bill) 
+print(X_train)
+X_train = X_train[:, np.newaxis] 
+print(len(X_train))
+y_train = np.array(data.tip)
+X_test = np.array([i /10 for i in range(500)]) 
+X_test = X_test[:, np.newaxis]
+y_test = [] 
+count = 0
+for r in range(len(X_test)):
+    wts = np.exp(-np.sum((X_train - X_test[r]) ** 2, axis=1) / (2 * tou ** 2)) 
+    W = np.diag(wts)
+    factor1 = np.linalg.inv(X_train.T.dot(W).dot(X_train)) #factor=XT.W.X
+    parameters = factor1.dot(X_train.T).dot(W).dot(y_train) #parameters=factor.XT.W.Y 
+    prediction = X_test[r].dot(parameters) #X.Theta
+    y_test.append(prediction)
+    count += 1 
+print(len(y_test))
+y_test = np.array(y_test) 
+plt.plot(X_train.squeeze(), y_train, 'o')
+plt.plot(X_test.squeeze(), y_test, 'o') 
+plt.show()
+
+
+10)
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+datasets = pd.read_csv('pr10.csv')
+X = datasets.iloc[:, [2,3]].values
+Y = datasets.iloc[:, 4].values
+from sklearn.model_selection import train_test_split
+X_Train, X_Test, Y_Train, Y_Test = train_test_split(X, Y, test_size = 0.25,
+random_state = 0)
+from sklearn.preprocessing import StandardScaler
+sc_X = StandardScaler()
+X_Train = sc_X.fit_transform(X_Train)
+X_Test = sc_X.transform(X_Test)
+from sklearn.svm import SVC
+classifier = SVC(kernel = 'linear', random_state = 0)
+classifier.fit(X_Train, Y_Train)
+Y_Pred = classifier.predict(X_Test)
+from sklearn import metrics
+print("Accuracy score ",metrics.accuracy_score(Y_Test, Y_Pred))
+plt.scatter(X_Train[:,0], X_Train[:, 1],c=Y_Train)
+plt.title('Support Vector Machine (Training set)')
+plt.xlabel('Age')
+plt.ylabel('Estimated Salary')
+w=classifier.coef_[0]
+a=-w[0]/w[1]
+xx=np.linspace(-2.5,2.5)
+yy=a*xx -(classifier.intercept_[0])/w[1]
+plt.plot(xx,yy)
+plt.show();
+plt.scatter(X_Test[:,0], X_Test[:, 1],c=Y_Test)
+plt.title('Support Vector Machine (Test set)')
+plt.xlabel('Age')
+plt.ylabel('Estimated Salary')
+w=classifier.coef_[0]
+a=-w[0]/w[1]
+xx=np.linspace(-2.5,2.5)
+yy=a*xx -(classifier.intercept_[0])/w[1]
+plt.plot(xx,yy)
+plt.show()
